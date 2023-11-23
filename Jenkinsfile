@@ -1,6 +1,7 @@
 @Library('my-shared-library') _
 
 pipeline{
+    
     agent any
 
     paramters{
@@ -38,6 +39,7 @@ pipeline{
         }
 
         stage('Integration Test maven'){
+            when { expression {  params.action == 'create' } }
             
             steps{
                 
