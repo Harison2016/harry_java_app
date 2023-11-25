@@ -116,6 +116,18 @@ pipeline{
             }
         }
 
+        stage('Install AWS CLI'){
+            when { expression {  params.action == 'create' } }
+            
+            steps{
+                
+                script{
+                    
+                    installawscli()
+                }
+            }
+        }
+
         stage('Docker Image Push : ECR'){
             when { expression {  params.action == 'create' } }
             
