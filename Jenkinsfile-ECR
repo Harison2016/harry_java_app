@@ -12,6 +12,12 @@ pipeline{
         string(name: 'ECR_REPO_NAME', description: "name of the ECR", defaultValue: 'hokonkwo29')
         //string(name: 'cluster', description: "name of the EKS Cluster", defaultValue: 'demo-cluster1')
     }
+
+    environment{
+
+        ACCESS_KEY = credentials('AWS_ACCESS_KEY_ID')
+        SECRET_KEY = credentials('AWS_SECRET_KEY_ID')
+    }
     
     stages{
         
@@ -30,112 +36,133 @@ pipeline{
             }
         }
 
-        stage('Unit Test maven'){
-            when { expression {  params.action == 'create' } }
+        // stage('Unit Test maven'){
+        //     when { expression {  params.action == 'create' } }
             
-            steps{
+        //     steps{
                 
-                script{
+        //         script{
 
-                    mvnTest()
-                }
-            }
-        }
+        //             mvnTest()
+        //         }
+        //     }
+        // }
 
-        stage('Integration Test maven'){
-            when { expression {  params.action == 'create' } }
+        // stage('Integration Test maven'){
+        //     when { expression {  params.action == 'create' } }
             
-            steps{
+        //     steps{
                 
-                script{
+        //         script{
 
-                    mvnIntegrationTest()
-                }
-            }
-        }
+        //             mvnIntegrationTest()
+        //         }
+        //     }
+        // }
 
-        stage('Static code analysis sonarqube'){
+        // stage('Static code analysis sonarqube'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             def SonarQubecredentialsId = 'sonarqube-api'
+        //             statiCodeAnalysis(SonarQubecredentialsId)
+        //         }
+        //     }
+        // }
+
+        // stage('Quality Gate Status Check : sonarqube'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             def SonarQubecredentialsId = 'sonarqube-api'
+        //             QualityGateStatus(SonarQubecredentialsId)
+        //         }
+        //     }
+        // }
+
+        // stage('Maven Build : maven'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             mvnBuild()
+        //         }
+        //     }
+        // }
+
+        // stage('Docker Image Build : ECR'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             dockerBuild("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
+        //         }
+        //     }
+        // }
+
+        // stage('Docker Image Scan: trivy'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             dockerImageScan("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
+        //         }
+        //     }
+        // }
+
+        // stage('Docker Image Push : ECR'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             dockerImagePush("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
+        //         }
+        //     }
+        // }
+
+        // stage('Docker Image Cleanup : ECR'){
+        //     when { expression {  params.action == 'create' } }
+            
+        //     steps{
+                
+        //         script{
+                    
+        //             dockerImageCleanup("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
+        //         }
+        //     }
+        // }
+
+        stage('Create EKS Cluster : Terraform'){
             when { expression {  params.action == 'create' } }
             
             steps{
                 
                 script{
                     
-                    def SonarQubecredentialsId = 'sonarqube-api'
-                    statiCodeAnalysis(SonarQubecredentialsId)
-                }
-            }
-        }
+                    dir('eks_module'){
 
-        stage('Quality Gate Status Check : sonarqube'){
-            when { expression {  params.action == 'create' } }
-            
-            steps{
-                
-                script{
-                    
-                    def SonarQubecredentialsId = 'sonarqube-api'
-                    QualityGateStatus(SonarQubecredentialsId)
-                }
-            }
-        }
-
-        stage('Maven Build : maven'){
-            when { expression {  params.action == 'create' } }
-            
-            steps{
-                
-                script{
-                    
-                    mvnBuild()
-                }
-            }
-        }
-
-        stage('Docker Image Build : ECR'){
-            when { expression {  params.action == 'create' } }
-            
-            steps{
-                
-                script{
-                    
-                    dockerBuild("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
-                }
-            }
-        }
-
-        stage('Docker Image Scan: trivy'){
-            when { expression {  params.action == 'create' } }
-            
-            steps{
-                
-                script{
-                    
-                    dockerImageScan("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
-                }
-            }
-        }
-
-        stage('Docker Image Push : ECR'){
-            when { expression {  params.action == 'create' } }
-            
-            steps{
-                
-                script{
-                    
-                    dockerImagePush("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
-                }
-            }
-        }
-
-        stage('Docker Image Cleanup : ECR'){
-            when { expression {  params.action == 'create' } }
-            
-            steps{
-                
-                script{
-                    
-                    dockerImageCleanup("${params.aws_account_id}","${params.Region}","${params.ECR_REPO_NAME}")
+                          sh """
+                          
+                          terraform init 
+                          terraform plan -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' -var 'region=${params.Region}' --var-file=./config/terraform.tfvars
+                          terraform apply -var 'access_key=$ACCESS_KEY' -var 'secret_key=$SECRET_KEY' -var 'region=${params.Region}' --var-file=./config/terraform.tfvars --auto-approve
+                          
+                        """
+                    }
                 }
             }
         }
